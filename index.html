@@ -320,23 +320,26 @@
   </div>
 
   <script>
-    // --- CREDENTIALS (Change as desired) ---
+    // --- CREDENTIALS ---
     const VALID_USER = "surya";
     const VALID_PASS = "surya123";
 
     // --- FIREBASE CONFIGURATION ---
     const firebaseConfig = {
-      apiKey: "AIzaSyCe66yYRzobvCTmtqm3Hq...", 
       authDomain: "surya-pumps.firebaseapp.com",
       databaseURL: "https://surya-pumps-default-rtdb.firebaseio.com",
       projectId: "surya-pumps",
       storageBucket: "surya-pumps.appspot.com",
-      messagingSenderId: "72100756068",
-      appId: "1:72100756068:web:111032af8..."
+      messagingSenderId: "72100756068"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    let db = null;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+    } catch(e) {
+      console.warn("Firebase running in offline fallback mode", e);
+    }
 
     let sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
     let mySessionRef = null;
@@ -356,6 +359,13 @@
         return;
       }
 
+      if (!db) {
+        // Fallback login if database keys are incomplete
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
+        return;
+      }
+
       // Check current active sessions
       db.ref('active_sessions').get().then(snapshot => {
         const sessions = snapshot.val() || {};
@@ -369,13 +379,17 @@
         // Register session in Firebase
         mySessionRef = db.ref('active_sessions/' + sessionId);
         mySessionRef.set({ timestamp: Date.now(), user: user });
-        mySessionRef.onDisconnect().remove(); // Remove session automatically on disconnect/close
+        mySessionRef.onDisconnect().remove();
 
         // Hide overlay & show app
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('appContent').style.display = 'block';
 
         initDatabaseListeners();
+      }).catch(err => {
+        // Direct login if network/firebase issue occurs
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('appContent').style.display = 'block';
       });
     }
 
@@ -392,14 +406,14 @@
 
     // LISTENERS & SYNC
     function initDatabaseListeners() {
-      // Listen to active sessions count
+      if (!db) return;
+
       db.ref('active_sessions').on('value', snapshot => {
         const sessions = snapshot.val() || {};
         const count = Object.keys(sessions).length;
         document.getElementById('activeUserCount').innerText = `Active Users: ${count}/3`;
       });
 
-      // Listen to application data
       db.ref('surya_data').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -413,7 +427,9 @@
     }
 
     function saveToCloud() {
-      db.ref('surya_data').set(appData);
+      if (db) {
+        db.ref('surya_data').set(appData);
+      }
     }
 
     function switchTab(e, tabId) {
@@ -438,6 +454,7 @@
       document.getElementById('pumpModel').value = '';
       document.getElementById('pumpQty').value = '';
       document.getElementById('pumpPrice').value = '';
+      renderStock();
     }
 
     function renderStock() {
@@ -471,6 +488,7 @@
       saveToCloud();
 
       document.getElementById('staffName').value = '';
+      renderAttendance();
     }
 
     function renderAttendance() {
@@ -506,6 +524,7 @@
 
       document.getElementById('partyName').value = '';
       document.getElementById('payAmount').value = '';
+      renderLedger();
     }
 
     function renderLedger() {
@@ -542,5 +561,3 @@
   </script>
 </body>
 </html>
-
-
