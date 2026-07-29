@@ -1,7 +1,8 @@
 {
-  "name": "Surya Pumps",
+  "name": "Surya Pumps Management",
   "short_name": "SuryaPumps",
-  "start_url": "index.html",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0d6efd",
@@ -13,4 +14,5 @@
     }
   ]
 }
+
 
