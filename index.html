@@ -3,169 +3,362 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surya Pumps App</title>
-
-    <!-- INLINE MANIFEST (No extra file needed) -->
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Surya Pumps","short_name":"SuryaPumps","start_url":".","display":"standalone","background_color":"%23ffffff","theme_color":"%230d6efd","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/891/891018.png","sizes":"512x512","type":"image/png"}]}'>
-
-    <!-- INLINE SERVICE WORKER (No extra file needed) -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        const swCode = "self.addEventListener('fetch', function(e) {});";
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(swUrl).catch(() => {});
-      }
-    </script>
-
+    <title>Surya Pumps Pro</title>
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
-        body { background-color: #f8f9fa; font-family: sans-serif; }
-        .card { border-radius: 12px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
-        .header-bg { background: linear-gradient(135deg, #0d6efd, #0b5ed7); color: white; padding: 15px; border-radius: 0 0 12px 12px; }
+        :root { --primary-color: #0d6efd; --dark-navy: #0a192f; }
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 70px; }
+        .app-header { background: linear-gradient(135deg, #0a192f, #0d6efd); color: white; padding: 18px 15px; border-radius: 0 0 16px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .card { border: none; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .nav-pills .nav-link { color: #555; font-weight: 600; border-radius: 8px; }
+        .nav-pills .nav-link.active { background-color: var(--primary-color); }
+        .low-stock-row { background-color: #ffe6e6 !important; border-left: 4px solid #dc3545; }
+        .badge-low { background-color: #dc3545; color: white; }
+        .stat-card { background: white; border-radius: 10px; padding: 12px; border-left: 4px solid var(--primary-color); }
     </style>
 </head>
 <body>
 
-<div class="header-bg mb-3 text-center">
-    <h4 class="m-0 fw-bold">☀️ Surya Pumps Management</h4>
+<!-- Header -->
+<div class="app-header mb-3 text-center">
+    <h4 class="m-0 fw-bold"><i class="fa-solid fa-bolt text-warning me-2"></i>Surya Pumps Pro</h4>
+    <small class="text-light opacity-75">Enterprise Stock, Attendance & Ledger System</small>
 </div>
 
 <div class="container px-3">
 
-    <!-- 1. STOCK TRACKER -->
-    <div class="card p-3">
-        <h6 class="fw-bold text-primary">📦 Stock Inventory</h6>
-        <form id="stockForm" class="row g-2 mb-2">
-            <div class="col-7"><input type="text" id="model" class="form-control form-control-sm" placeholder="Pump Model (e.g. V4 1.5HP)" required></div>
-            <div class="col-5"><input type="number" id="qty" class="form-control form-control-sm" placeholder="Qty" required></div>
-            <div class="col-7"><input type="number" id="price" class="form-control form-control-sm" placeholder="Price (₹)" required></div>
-            <div class="col-5"><button type="submit" class="btn btn-sm btn-success w-100">Add Stock</button></div>
-        </form>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead><tr><th>Model</th><th>Price</th><th>Stock</th></tr></thead>
-                <tbody id="stockTable"></tbody>
-            </table>
-        </div>
+    <!-- Top Alert Banner for Low Stock -->
+    <div id="lowStockAlert" class="alert alert-danger d-none align-items-center mb-3" role="alert">
+        <i class="fa-solid fa-triangle-exclamation me-2 fs-5"></i>
+        <div><strong>Low Stock Warning!</strong> Some pump models are running low.</div>
     </div>
 
-    <!-- 2. STAFF ATTENDANCE -->
-    <div class="card p-3">
-        <h6 class="fw-bold text-primary">👤 Attendance Tracker</h6>
-        <form id="attForm" class="row g-2 mb-2">
-            <div class="col-6"><input type="text" id="staffName" class="form-control form-control-sm" placeholder="Staff Name" required></div>
-            <div class="col-6">
-                <select id="attStatus" class="form-select form-select-sm">
-                    <option value="Present">Present</option>
-                    <option value="Absent">Absent</option>
-                    <option value="Late">Late</option>
-                </select>
+    <!-- Navigation Catalog Tabs -->
+    <ul class="nav nav-pills nav-justified bg-white p-2 shadow-sm rounded-3 mb-3" id="catalogTabs">
+        <li class="nav-item">
+            <button class="nav-link active" onclick="switchTab('stock')"><i class="fa-solid fa-boxes-stacked me-1"></i> Stock</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" onclick="switchTab('attendance')"><i class="fa-solid fa-user-check me-1"></i> Attendance</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" onclick="switchTab('payments')"><i class="fa-solid fa-receipt me-1"></i> Payments</button>
+        </li>
+    </ul>
+
+    <!-- CATALOG 1: STOCK TRACKER -->
+    <div id="stockCatalog" class="catalog-section">
+        <div class="card p-3 mb-3">
+            <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-plus-circle me-1"></i> Add / Update Pump Stock</h6>
+            <form id="stockForm" class="row g-2">
+                <input type="hidden" id="stockEditIndex" value="-1">
+                <div class="col-12"><input type="text" id="pumpModel" class="form-control" placeholder="Pump Model Name (e.g. V4 Submersible 1.5HP)" required></div>
+                <div class="col-6"><input type="number" id="pumpQty" class="form-control" placeholder="Available Qty" min="0" required></div>
+                <div class="col-6"><input type="number" id="pumpPrice" class="form-control" placeholder="Unit Price (₹)" min="0" required></div>
+                <div class="col-12 mt-2">
+                    <button type="submit" id="stockSubmitBtn" class="btn btn-primary w-100 fw-bold"><i class="fa-solid fa-floppy-disk me-1"></i> Save Stock</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold m-0"><i class="fa-solid fa-list me-1"></i> Stock Inventory List</h6>
+                <input type="text" id="stockSearch" class="form-control form-control-sm w-50" placeholder="🔍 Search..." onkeyup="renderStock()">
             </div>
-            <div class="col-12"><button type="submit" class="btn btn-sm btn-primary w-100">Log Attendance</button></div>
-        </form>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead><tr><th>Name</th><th>Date</th><th>Status</th></tr></thead>
-                <tbody id="attendanceTable"></tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Model</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- 3. PAYMENT TRACKER -->
-    <div class="card p-3">
-        <h6 class="fw-bold text-primary">💰 Payment Ledger</h6>
-        <form id="payForm" class="row g-2 mb-2">
-            <div class="col-12"><input type="text" id="custName" class="form-control form-control-sm" placeholder="Customer Name" required></div>
-            <div class="col-6"><input type="number" id="totalAmt" class="form-control form-control-sm" placeholder="Total Bill (₹)" required></div>
-            <div class="col-6"><input type="number" id="paidAmt" class="form-control form-control-sm" placeholder="Paid (₹)" required></div>
-            <div class="col-12"><button type="submit" class="btn btn-sm btn-warning text-white w-100">Save Payment</button></div>
-        </form>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead><tr><th>Customer</th><th>Pending</th><th>Status</th></tr></thead>
-                <tbody id="paymentTable"></tbody>
-            </table>
+    <!-- CATALOG 2: STAFF ATTENDANCE (Supports 2-Year History Query) -->
+    <div id="attendanceCatalog" class="catalog-section d-none">
+        <div class="card p-3 mb-3">
+            <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-calendar-check me-1"></i> Log Staff Attendance</h6>
+            <form id="attForm" class="row g-2">
+                <div class="col-6"><input type="text" id="staffName" class="form-control" placeholder="Staff Name" required></div>
+                <div class="col-6">
+                    <select id="attStatus" class="form-select">
+                        <option value="Present">Present</option>
+                        <option value="Absent">Absent</option>
+                        <option value="Half Day">Half Day</option>
+                    </select>
+                </div>
+                <div class="col-12"><input type="date" id="attDate" class="form-control" required></div>
+                <div class="col-12"><button type="submit" class="btn btn-success w-100 fw-bold"><i class="fa-solid fa-check me-1"></i> Save Attendance Record</button></div>
+            </form>
         </div>
+
+        <div class="card p-3">
+            <h6 class="fw-bold mb-2"><i class="fa-solid fa-clock-rotate-left me-1"></i> Attendance Logs (Last 2 Years)</h6>
+            <div class="row g-2 mb-3">
+                <div class="col-6"><small>Filter Start Date:</small><input type="date" id="filterStartDate" class="form-control form-control-sm" onchange="renderAttendance()"></div>
+                <div class="col-6"><small>Filter End Date:</small><input type="date" id="filterEndDate" class="form-control form-control-sm" onchange="renderAttendance()"></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>Date</th><th>Staff</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="attendanceTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- CATALOG 3: PAYMENT LEDGER -->
+    <div id="paymentsCatalog" class="catalog-section d-none">
+        <div class="card p-3 mb-3">
+            <h6 class="fw-bold text-primary mb-3"><i class="fa-solid fa-file-invoice-dollar me-1"></i> New Payment Entry</h6>
+            <form id="payForm" class="row g-2">
+                <div class="col-12"><input type="text" id="custName" class="form-control" placeholder="Customer / Dealer Name" required></div>
+                <div class="col-6"><input type="number" id="totalBill" class="form-control" placeholder="Total Bill (₹)" required></div>
+                <div class="col-6"><input type="number" id="paidAmt" class="form-control" placeholder="Amount Paid (₹)" required></div>
+                <div class="col-12"><button type="submit" class="btn btn-warning text-white w-100 fw-bold"><i class="fa-solid fa-wallet me-1"></i> Record Payment</button></div>
+            </form>
+        </div>
+
+        <div class="card p-3">
+            <h6 class="fw-bold mb-2"><i class="fa-solid fa-scale-balanced me-1"></i> Payment Ledger History</h6>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
+                        <tr><th>Customer</th><th>Pending</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="paymentTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Utility Bar: Backup Data -->
+    <div class="mt-4 text-center">
+        <button class="btn btn-outline-secondary btn-sm" onclick="exportDataBackup()"><i class="fa-solid fa-download me-1"></i> Export Data Backup (JSON)</button>
     </div>
 
 </div>
 
+<!-- JavaScript Logic -->
 <script>
-// LocalStorage Database Helpers
+// --- DATABASE INITIALIZATION ---
 const getDB = (key) => JSON.parse(localStorage.getItem(key) || '[]');
 const saveDB = (key, data) => localStorage.setItem(key, JSON.stringify(data));
 
-function renderAll() {
-    // Render Stock
-    const stock = getDB('surya_stock');
-    document.getElementById('stockTable').innerHTML = stock.map(s => 
-        `<tr><td>${s.model}</td><td>₹${s.price}</td><td><span class="badge bg-secondary">${s.qty}</span></td></tr>`
-    ).join('') || '<tr><td colspan="3" class="text-muted text-center">No stock items</td></tr>';
+// Set Today's Date Default for Attendance
+document.getElementById('attDate').valueToDate = new Date();
+document.getElementById('attDate').value = new Date().toISOString().substring(0, 10);
 
-    // Render Attendance
-    const att = getDB('surya_att');
-    document.getElementById('attendanceTable').innerHTML = att.map(a => 
-        `<tr><td>${a.name}</td><td>${a.date}</td><td><span class="badge ${a.status==='Present'?'bg-success':'bg-danger'}">${a.status}</span></td></tr>`
-    ).join('') || '<tr><td colspan="3" class="text-muted text-center">No logs today</td></tr>';
-
-    // Render Payments
-    const pay = getDB('surya_pay');
-    document.getElementById('paymentTable').innerHTML = pay.map(p => {
-        const pending = p.total - p.paid;
-        const status = pending <= 0 ? 'Paid' : (p.paid > 0 ? 'Partial' : 'Pending');
-        const badgeClass = status === 'Paid' ? 'bg-success' : 'bg-warning text-dark';
-        return `<tr>
-            <td>${p.customer}</td>
-            <td class="text-danger">₹${pending}</td>
-            <td><span class="badge ${badgeClass}">${status}</span></td>
-        </tr>`;
-    }).join('') || '<tr><td colspan="3" class="text-muted text-center">No payment entries</td></tr>';
+// --- TAB SWITCHER LOGIC ---
+function switchTab(tabName) {
+    document.querySelectorAll('.catalog-section').forEach(el => el.classList.add('d-none'));
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    
+    if(tabName === 'stock') {
+        document.getElementById('stockCatalog').classList.remove('d-none');
+        event.target.classList.add('active');
+    } else if(tabName === 'attendance') {
+        document.getElementById('attendanceCatalog').classList.remove('d-none');
+        event.target.classList.add('active');
+    } else if(tabName === 'payments') {
+        document.getElementById('paymentsCatalog').classList.remove('d-none');
+        event.target.classList.add('active');
+    }
 }
 
-// Event Listeners
+// --- 1. STOCK TRACKER & LOW STOCK ALERTS ---
 document.getElementById('stockForm').onsubmit = (e) => {
     e.preventDefault();
-    const stock = getDB('surya_stock');
-    stock.push({
-        model: document.getElementById('model').value,
-        qty: document.getElementById('qty').value,
-        price: document.getElementById('price').value
-    });
-    saveDB('surya_stock', stock);
+    const stock = getDB('surya_stock_pro');
+    const model = document.getElementById('pumpModel').value.trim();
+    const qty = parseInt(document.getElementById('pumpQty').value);
+    const price = parseFloat(document.getElementById('pumpPrice').value);
+    const editIndex = parseInt(document.getElementById('stockEditIndex').value);
+
+    if (editIndex >= 0) {
+        stock[editIndex] = { model, qty, price };
+        document.getElementById('stockEditIndex').value = "-1";
+        document.getElementById('stockSubmitBtn').innerHTML = `<i class="fa-solid fa-floppy-disk me-1"></i> Save Stock`;
+    } else {
+        stock.push({ model, qty, price });
+    }
+
+    saveDB('surya_stock_pro', stock);
     e.target.reset();
-    renderAll();
+    renderStock();
 };
 
+function renderStock() {
+    const stock = getDB('surya_stock_pro');
+    const search = document.getElementById('stockSearch').value.toLowerCase();
+    const tbody = document.getElementById('stockTableBody');
+    let hasLowStock = false;
+
+    tbody.innerHTML = '';
+    stock.forEach((item, index) => {
+        if (item.model.toLowerCase().includes(search)) {
+            const isLow = item.qty <= 5; // Low stock threshold
+            if (isLow) hasLowStock = true;
+
+            const tr = document.createElement('tr');
+            if (isLow) tr.className = 'low-stock-row';
+
+            tr.innerHTML = `
+                <td><strong>${item.model}</strong></td>
+                <td><span class="badge ${isLow ? 'badge-low' : 'bg-success'}">${item.qty} units</span></td>
+                <td>₹${item.price}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary py-0 me-1" onclick="editStock(${index})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-outline-danger py-0" onclick="deleteStock(${index})"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
+
+    // Alert Banner Toggle
+    const alertBox = document.getElementById('lowStockAlert');
+    if (hasLowStock) alertBox.classList.remove('d-none');
+    else alertBox.classList.add('d-none');
+}
+
+function editStock(index) {
+    const stock = getDB('surya_stock_pro');
+    const item = stock[index];
+    document.getElementById('pumpModel').value = item.model;
+    document.getElementById('pumpQty').value = item.qty;
+    document.getElementById('pumpPrice').value = item.price;
+    document.getElementById('stockEditIndex').value = index;
+    document.getElementById('stockSubmitBtn').innerHTML = `<i class="fa-solid fa-arrows-rotate me-1"></i> Update Item #${index + 1}`;
+}
+
+function deleteStock(index) {
+    if (confirm("Delete this stock entry?")) {
+        const stock = getDB('surya_stock_pro');
+        stock.splice(index, 1);
+        saveDB('surya_stock_pro', stock);
+        renderStock();
+    }
+}
+
+// --- 2. ATTENDANCE TRACKER (2-YEAR HISTORY SUPPORT) ---
 document.getElementById('attForm').onsubmit = (e) => {
     e.preventDefault();
-    const att = getDB('surya_att');
-    const today = new Date().toLocaleDateString('en-IN');
+    const att = getDB('surya_att_pro');
     att.unshift({
-        name: document.getElementById('staffName').value,
+        name: document.getElementById('staffName').value.trim(),
         status: document.getElementById('attStatus').value,
-        date: today
+        date: document.getElementById('attDate').value
     });
-    saveDB('surya_att', att);
-    e.target.reset();
-    renderAll();
+    saveDB('surya_att_pro', att);
+    document.getElementById('staffName').value = '';
+    renderAttendance();
 };
 
+function renderAttendance() {
+    const att = getDB('surya_att_pro');
+    const startDate = document.getElementById('filterStartDate').value;
+    const endDate = document.getElementById('filterEndDate').value;
+    const tbody = document.getElementById('attendanceTableBody');
+
+    tbody.innerHTML = '';
+    att.forEach((item, index) => {
+        if ((!startDate || item.date >= startDate) && (!endDate || item.date <= endDate)) {
+            const badge = item.status === 'Present' ? 'bg-success' : (item.status === 'Absent' ? 'bg-danger' : 'bg-warning text-dark');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><small>${item.date}</small></td>
+                <td>${item.name}</td>
+                <td><span class="badge ${badge}">${item.status}</span></td>
+                <td><button class="btn btn-sm text-danger p-0" onclick="deleteAtt(${index})"><i class="fa-solid fa-xmark"></i></button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
+}
+
+function deleteAtt(index) {
+    const att = getDB('surya_att_pro');
+    att.splice(index, 1);
+    saveDB('surya_att_pro', att);
+    renderAttendance();
+}
+
+// --- 3. PAYMENT LEDGER ---
 document.getElementById('payForm').onsubmit = (e) => {
     e.preventDefault();
-    const pay = getDB('surya_pay');
+    const pay = getDB('surya_pay_pro');
     pay.unshift({
-        customer: document.getElementById('custName').value,
-        total: Number(document.getElementById('totalAmt').value),
-        paid: Number(document.getElementById('paidAmt').value)
+        customer: document.getElementById('custName').value.trim(),
+        total: parseFloat(document.getElementById('totalBill').value),
+        paid: parseFloat(document.getElementById('paidAmt').value)
     });
-    saveDB('surya_pay', pay);
+    saveDB('surya_pay_pro', pay);
     e.target.reset();
-    renderAll();
+    renderPayments();
 };
 
-// Initial Load
-renderAll();
+function renderPayments() {
+    const pay = getDB('surya_pay_pro');
+    const tbody = document.getElementById('paymentTableBody');
+    tbody.innerHTML = '';
+
+    pay.forEach((item, index) => {
+        const pending = item.total - item.paid;
+        const status = pending <= 0 ? 'Clear' : 'Pending';
+        const badge = status === 'Clear' ? 'bg-success' : 'bg-warning text-dark';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${item.customer}</td>
+            <td class="${pending > 0 ? 'text-danger fw-bold' : 'text-success'}">₹${pending}</td>
+            <td><span class="badge ${badge}">${status}</span></td>
+            <td><button class="btn btn-sm text-danger p-0" onclick="deletePay(${index})"><i class="fa-solid fa-xmark"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function deletePay(index) {
+    const pay = getDB('surya_pay_pro');
+    pay.splice(index, 1);
+    saveDB('surya_pay_pro', pay);
+    renderPayments();
+}
+
+// Data Backup Helper
+function exportDataBackup() {
+    const data = {
+        stock: getDB('surya_stock_pro'),
+        attendance: getDB('surya_att_pro'),
+        payments: getDB('surya_pay_pro')
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Surya_Pumps_Backup_${new Date().toISOString().substring(0,10)}.json`;
+    a.click();
+}
+
+// Initial Rendering
+renderStock();
+renderAttendance();
+renderPayments();
 </script>
 </body>
 </html>
+
