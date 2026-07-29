@@ -347,6 +347,41 @@
     let mySessionRef = null;
 
     let appData = { stock: [], attendance: [], ledger: [] };
+    function attemptLogin() {
+  const user = document.getElementById('loginId').value.trim();
+  const pass = document.getElementById('loginPass').value.trim();
+  const errDiv = document.getElementById('loginErr');
+
+  // 1. Check Credentials
+  if (user !== VALID_USER || pass !== VALID_PASS) {
+    if (errDiv) errDiv.innerText = "Invalid User ID or Password!";
+    return;
+  }
+
+  // 2. Immediately unlock the app UI
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appContent').style.display = 'block';
+
+  // 3. Set default date safely
+  const dateInput = document.getElementById('attDate');
+  if (dateInput) {
+    dateInput.value = new Date().toISOString().substring(0, 10);
+  }
+
+  // 4. Try cloud sync in background
+  if (db) {
+    try {
+      db.ref('active_sessions/' + sessionId).set({
+        timestamp: Date.now(),
+        user: user
+      });
+      if (typeof startCloudSync === 'function') startCloudSync();
+    } catch (e) {
+      console.warn("Cloud sync deferred:", e);
+    }
+  }
+}
+
 
     
     
