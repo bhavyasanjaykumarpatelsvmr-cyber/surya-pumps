@@ -1,8 +1,9 @@
 {
-  "name": "Surya Pumps Management",
+  "name": "Surya Pumps",
   "short_name": "SuryaPumps",
-  "start_url": "./",
-  "scope": "./",
+  "id": "/surya-pumps/",
+  "start_url": "https://yourusername.github.io/surya-pumps/index.html",
+  "scope": "https://yourusername.github.io/surya-pumps/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0d6efd",
@@ -14,5 +15,6 @@
     }
   ]
 }
+
 
 
