@@ -388,14 +388,10 @@
 
     // LOGIN & CONCURRENCY SYSTEM
     function attemptLogin() {
-      const user = document.getElementById('loginId').value.trim();
-      const pass = document.getElementById('loginPass').value.trim();
-      const errDiv = document.getElementById('loginErr');
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appContent').style.display = 'block';
+}
 
-      if (user !== VALID_USER || pass !== VALID_PASS) {
-        errDiv.innerText = "Invalid User ID or Password!";
-        return;
-      }
 
       if (!db) {
         // Fallback login if database keys are incomplete
