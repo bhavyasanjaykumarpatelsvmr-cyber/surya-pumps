@@ -1,332 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Surya Pumps Pro</title>
-  
-  <!-- Firebase Compatibility Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-  <style>
-    :root {
-      --primary: #0052cc;
-      --primary-dark: #003d99;
-      --bg: #f4f6f9;
-      --surface: #ffffff;
-      --text: #172b4d;
-      --text-sub: #5e6c84;
-      --border: #dfe1e6;
-      --danger: #de350b;
-      --success: #36b37e;
-      --warning: #ffab00;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding-bottom: 30px; }
-
-    /* LOGIN SCREEN STYLES */
-    #loginOverlay {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0052cc;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      padding: 16px;
-    }
-
-    .login-card {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      text-align: center;
-    }
-
-    .login-card h2 { color: var(--primary); margin-bottom: 6px; }
-    .login-card p { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px; }
-
-    /* APP CONTAINER STYLES */
-    #appContent { display: none; }
-
-    header {
-      background: var(--primary);
-      color: white;
-      padding: 16px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    header h1 { font-size: 1.4rem; font-weight: 700; }
-    .header-sub { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 0.75rem; }
-    .status-badge { background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; }
-    .btn-logout { background: rgba(255,255,255,0.25); border: none; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
-
-    .nav-tabs {
-      display: flex;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 56px;
-      z-index: 99;
-    }
-
-    .tab-btn {
-      flex: 1;
-      padding: 12px 5px;
-      border: none;
-      background: none;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--text-sub);
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-    }
-
-    .tab-btn.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
-    }
-
-    .container { padding: 16px; max-width: 800px; margin: 0 auto; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    .card {
-      background: var(--surface);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
-      border: 1px solid var(--border);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .card h2 { font-size: 1.1rem; margin-bottom: 12px; color: var(--primary-dark); }
-
-    .form-group { margin-bottom: 12px; text-align: left; }
-    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px; }
-    .form-control {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.95rem;
-    }
-
-    .btn {
-      display: inline-block;
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      background: var(--primary);
-      color: white;
-      font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-      text-align: center;
-    }
-
-    .btn:active { background: var(--primary-dark); }
-    .btn-secondary { background: #6b778c; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85rem; }
-    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
-    th { background: #f4f5f7; color: var(--text-sub); font-weight: 600; }
-
-    .badge-low { background: #ffebe6; color: var(--danger); padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; }
-    .badge-ok { background: #e3fcef; color: var(--success); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; }
-
-    .flex-row { display: flex; gap: 8px; }
-    .flex-row .form-group { flex: 1; }
-
-    .backup-section { margin-top: 24px; text-align: center; }
-  </style>
-</head>
-<body>
-
-  <!-- LOGIN OVERLAY -->
-  <div id="loginOverlay">
-    <div class="login-card">
-      <h2>Surya Pumps Pro</h2>
-      <p>Enter credentials to access catalog</p>
-      <div class="form-group">
-        <label>User ID</label>
-        <input type="text" id="loginId" class="form-control" placeholder="Enter User ID">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="loginPass" class="form-control" placeholder="Enter Password">
-      </div>
-      <button class="btn" onclick="attemptLogin()">Login</button>
-      <div id="loginErr" style="color: var(--danger); font-size: 0.8rem; margin-top: 10px; font-weight: bold;"></div>
-    </div>
-  </div>
-
-  <!-- MAIN APPLICATION CONTENT -->
-  <div id="appContent">
-    <header>
-      <h1>Surya Pumps Pro</h1>
-      <div class="header-sub">
-        <span class="status-badge" id="syncStatus">🔄 Syncing Cloud Data...</span>
-        <span id="activeUserCount">Active Users: 0/3</span>
-        <button class="btn-logout" onclick="logout()">Logout</button>
-      </div>
-    </header>
-
-    <nav class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab(event, 'stock')">📦 Stock</button>
-      <button class="tab-btn" onclick="switchTab(event, 'attendance')">📅 Attendance</button>
-      <button class="tab-btn" onclick="switchTab(event, 'ledger')">💰 Ledger</button>
-    </nav>
-
-    <div class="container">
-
-      <!-- STOCK CATALOG -->
-      <div id="stock" class="tab-content active">
-        <div class="card">
-          <h2>Add / Update Pump Stock</h2>
-          <div class="form-group">
-            <label>Model Name / HP</label>
-            <input type="text" id="pumpModel" class="form-control" placeholder="e.g. 1.5 HP Submersible">
-          </div>
-          <div class="flex-row">
-            <div class="form-group">
-              <label>Quantity</label>
-              <input type="number" id="pumpQty" class="form-control" placeholder="0">
-            </div>
-            <div class="form-group">
-              <label>Price (₹)</label>
-              <input type="number" id="pumpPrice" class="form-control" placeholder="0">
-            </div>
-          </div>
-          <button class="btn" onclick="addStock()">Save Stock Item</button>
-        </div>
-
-        <div class="card">
-          <h2>Current Inventory</h2>
-          <table id="stockTable">
-            <thead>
-              <tr>
-                <th>Model</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ATTENDANCE CATALOG -->
-      <div id="attendance" class="tab-content">
-        <div class="card">
-          <h2>Mark Attendance</h2>
-          <div class="form-group">
-            <label>Staff Name</label>
-            <input type="text" id="staffName" class="form-control" placeholder="Staff Member Name">
-          </div>
-          <div class="flex-row">
-            <div class="form-group">
-              <label>Date</label>
-              <input type="date" id="attDate" class="form-control">
-            </div>
-            <div class="form-group">
-              <label>Status</label>
-              <select id="attStatus" class="form-control">
-                <option value="Present">Present</option>
-                <option value="Absent">Absent</option>
-                <option value="Half Day">Half Day</option>
-              </select>
-            </div>
-          </div>
-          <button class="btn" onclick="addAttendance()">Mark Attendance</button>
-        </div>
-
-        <div class="card">
-          <h2>Attendance History</h2>
-          <div class="form-group">
-            <input type="month" id="filterMonth" class="form-control" onchange="renderAttendance()">
-          </div>
-          <table id="attendanceTable">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Staff</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- LEDGER CATALOG -->
-      <div id="ledger" class="tab-content">
-        <div class="card">
-          <h2>Record Payment Entry</h2>
-          <div class="form-group">
-            <label>Customer / Dealer Name</label>
-            <input type="text" id="partyName" class="form-control" placeholder="Party Name">
-          </div>
-          <div class="flex-row">
-            <div class="form-group">
-              <label>Amount (₹)</label>
-              <input type="number" id="payAmount" class="form-control" placeholder="0">
-            </div>
-            <div class="form-group">
-              <label>Type</label>
-              <select id="payType" class="form-control">
-                <option value="Received">Received (Credit)</option>
-                <option value="Pending">Pending (Debit)</option>
-              </select>
-            </div>
-          </div>
-          <button class="btn" onclick="addLedger()">Save Payment Entry</button>
-        </div>
-
-        <div class="card">
-          <h2>Payment Records</h2>
-          <table id="ledgerTable">
-            <thead>
-              <tr>
-                <th>Party</th>
-                <th>Amount</th>
-                <th>Type</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- BACKUP SECTION -->
-      <div class="backup-section card">
-        <h2>Offline Data Backup</h2>
-        <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 12px;">Download a local copy of your data anytime.</p>
-        <button class="btn btn-secondary" onclick="exportDataBackup()">Export Data Backup (JSON)</button>
-      </div>
-
-    </div>
-  </div>
-
-  <script>
+<script>
     // --- CREDENTIALS ---
     const VALID_USER = "surya";
     const VALID_PASS = "surya123";
 
     // --- FIREBASE CONFIGURATION ---
     const firebaseConfig = {
-      apiKey: "AIzaSyCe66yYRzobvCTmtqm3HqCiGOan1C9rYa0",
+      apiKey: "AIzaSyYRzobvCTmtqm3HqCiGOan1C9rYa0",
       appId: "1:72100756068:web:061d25a0aa3787dbbebd71",
       authDomain: "surya-pumps.firebaseapp.com",
       databaseURL: "https://surya-pumps-default-rtdb.firebaseio.com",
@@ -336,262 +15,76 @@
     };
 
     let db = null;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.database();
-    } catch(e) {
-      console.warn("Firebase running in offline fallback mode", e);
-    }
-
     let sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
     let mySessionRef = null;
-
     let appData = { stock: [], attendance: [], ledger: [] };
-    function attemptLogin() {
-  const user = document.getElementById('loginId').value.trim();
-  const pass = document.getElementById('loginPass').value.trim();
-  const errDiv = document.getElementById('loginErr');
 
-  // 1. Check Credentials
-  if (user !== VALID_USER || pass !== VALID_PASS) {
-    if (errDiv) errDiv.innerText = "Invalid User ID or Password!";
-    return;
-  }
-
-  // 2. Immediately unlock the app UI
-  document.getElementById('loginOverlay').style.display = 'none';
-  document.getElementById('appContent').style.display = 'block';
-
-  // 3. Set default date safely
-  const dateInput = document.getElementById('attDate');
-  if (dateInput) {
-    dateInput.value = new Date().toISOString().substring(0, 10);
-  }
-
-  // 4. Try cloud sync in background
-  if (db) {
+    // Initialize Firebase safely
     try {
-      db.ref('active_sessions/' + sessionId).set({
-        timestamp: Date.now(),
-        user: user
-      });
-      if (typeof startCloudSync === 'function') startCloudSync();
-    } catch (e) {
-      console.warn("Cloud sync deferred:", e);
-    }
-  }
-}
-
-
-    
-    
-
-    // LOGIN & CONCURRENCY SYSTEM
-    function attemptLogin() {
-  document.getElementById('loginOverlay').style.display = 'none';
-  document.getElementById('appContent').style.display = 'block';
-}
-
-
-      if (!db) {
-        // Fallback login if database keys are incomplete
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('appContent').style.display = 'block';
-        return;
+      if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
       }
+    } catch (e) {
+      console.warn("Firebase initialization warning:", e);
+    }
 
-      // Check current active sessions
-      db.ref('active_sessions').get().then(snapshot => {
-        const sessions = snapshot.val() || {};
-        const count = Object.keys(sessions).length;
+    // --- LOGIN & CONCURRENCY SYSTEM ---
+    function attemptLogin() {
+      try {
+        const userEl = document.getElementById('loginId');
+        const passEl = document.getElementById('loginPass');
+        const errDiv = document.getElementById('loginErr');
 
-        if (count >= 3) {
-          errDiv.innerText = "Access Denied: Maximum 3 users are currently logged in.";
+        const user = userEl ? userEl.value.trim() : "";
+        const pass = passEl ? passEl.value.trim() : "";
+
+        // 1. Verify Credentials
+        if (user !== VALID_USER || pass !== VALID_PASS) {
+          if (errDiv) {
+            errDiv.innerText = "Invalid User ID or Password!";
+          } else {
+            alert("Invalid User ID or Password!");
+          }
           return;
         }
 
-        // Register session in Firebase
-        mySessionRef = db.ref('active_sessions/' + sessionId);
-        mySessionRef.set({ timestamp: Date.now(), user: user });
-        mySessionRef.onDisconnect().remove();
+        // 2. Unlock App Screen
+        const overlay = document.getElementById('loginOverlay');
+        const appContent = document.getElementById('appContent');
 
-        // Hide overlay & show app
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('appContent').style.display = 'block';
+        if (overlay) overlay.style.display = 'none';
+        if (appContent) appContent.style.display = 'block';
 
-        initDatabaseListeners();
-      }).catch(err => {
-        // Direct login if network/firebase issue occurs
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('appContent').style.display = 'block';
-      });
-    }
-
-    function logout() {
-      if (mySessionRef) {
-        mySessionRef.remove();
-      }
-      location.reload();
-    }
-
-    window.addEventListener('beforeunload', () => {
-      if (mySessionRef) mySessionRef.remove();
-    });
-
-    // LISTENERS & SYNC
-    function initDatabaseListeners() {
-      if (!db) return;
-
-      db.ref('active_sessions').on('value', snapshot => {
-        const sessions = snapshot.val() || {};
-        const count = Object.keys(sessions).length;
-        document.getElementById('activeUserCount').innerText = `Active Users: ${count}/3`;
-      });
-
-      db.ref('surya_data').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          appData.stock = data.stock || [];
-          appData.attendance = data.attendance || [];
-          appData.ledger = data.ledger || [];
+        // 3. Set Default Date safely
+        const dateInput = document.getElementById('attDate');
+        if (dateInput) {
+          dateInput.value = new Date().toISOString().substring(0, 10);
         }
-        renderAll();
-        document.getElementById('syncStatus').innerText = "🟢 Cloud Live Synced";
-      });
-    }
 
-    function saveToCloud() {
-      if (db) {
-        db.ref('surya_data').set(appData);
+        // 4. Background Concurrency & Cloud Sync
+        if (db) {
+          db.ref('active_sessions').get().then(snapshot => {
+            const sessions = snapshot.val() || {};
+            if (Object.keys(sessions).length >= 3) {
+              if (errDiv) errDiv.innerText = "Access Denied: Maximum 3 users logged in.";
+              if (overlay) overlay.style.display = 'flex';
+              if (appContent) appContent.style.display = 'none';
+              return;
+            }
+
+            mySessionRef = db.ref('active_sessions/' + sessionId);
+            mySessionRef.set({ timestamp: Date.now(), user: user });
+            mySessionRef.onDisconnect().remove();
+
+            if (typeof startCloudSync === 'function') startCloudSync();
+          }).catch(err => {
+            console.warn("Session check failed, proceeding offline:", err);
+            if (typeof startCloudSync === 'function') startCloudSync();
+          });
+        }
+      } catch (err) {
+        alert("Execution Error: " + err.message);
       }
     }
-
-    function switchTab(e, tabId) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      
-      e.target.classList.add('active');
-      document.getElementById(tabId).classList.add('active');
-    }
-
-    // STOCK FUNCTIONS
-    function addStock() {
-      const model = document.getElementById('pumpModel').value.trim();
-      const qty = parseInt(document.getElementById('pumpQty').value) || 0;
-      const price = parseFloat(document.getElementById('pumpPrice').value) || 0;
-
-      if(!model) return alert('Enter pump model name');
-
-      appData.stock.push({ model, qty, price });
-      saveToCloud();
-
-      document.getElementById('pumpModel').value = '';
-      document.getElementById('pumpQty').value = '';
-      document.getElementById('pumpPrice').value = '';
-      renderStock();
-    }
-
-    function renderStock() {
-      const tbody = document.querySelector('#stockTable tbody');
-      tbody.innerHTML = '';
-      appData.stock.forEach(item => {
-        const badge = item.qty <= 2 
-          ? `<span class="badge-low">Low Stock (${item.qty})</span>` 
-          : `<span class="badge-ok">In Stock</span>`;
-        
-        tbody.innerHTML += `
-          <tr>
-            <td><b>${item.model}</b></td>
-            <td>${item.qty}</td>
-            <td>₹${item.price}</td>
-            <td>${badge}</td>
-          </tr>
-        `;
-      });
-    }
-
-    // ATTENDANCE FUNCTIONS
-    function addAttendance() {
-      const name = document.getElementById('staffName').value.trim();
-      const date = document.getElementById('attDate').value;
-      const status = document.getElementById('attStatus').value;
-
-      if(!name || !date) return alert('Enter staff name and date');
-
-      appData.attendance.push({ name, date, status });
-      saveToCloud();
-
-      document.getElementById('staffName').value = '';
-      renderAttendance();
-    }
-
-    function renderAttendance() {
-      const tbody = document.querySelector('#attendanceTable tbody');
-      const filterMonth = document.getElementById('filterMonth').value;
-      tbody.innerHTML = '';
-
-      const filtered = filterMonth 
-        ? appData.attendance.filter(a => a.date.startsWith(filterMonth))
-        : appData.attendance;
-
-      filtered.forEach(item => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${item.date}</td>
-            <td><b>${item.name}</b></td>
-            <td>${item.status}</td>
-          </tr>
-        `;
-      });
-    }
-
-    // LEDGER FUNCTIONS
-    function addLedger() {
-      const name = document.getElementById('partyName').value.trim();
-      const amount = parseFloat(document.getElementById('payAmount').value) || 0;
-      const type = document.getElementById('payType').value;
-
-      if(!name) return alert('Enter party name');
-
-      appData.ledger.push({ name, amount, type });
-      saveToCloud();
-
-      document.getElementById('partyName').value = '';
-      document.getElementById('payAmount').value = '';
-      renderLedger();
-    }
-
-    function renderLedger() {
-      const tbody = document.querySelector('#ledgerTable tbody');
-      tbody.innerHTML = '';
-
-      appData.ledger.forEach(item => {
-        const color = item.type === 'Received' ? 'color: var(--success)' : 'color: var(--danger)';
-        tbody.innerHTML += `
-          <tr>
-            <td><b>${item.name}</b></td>
-            <td style="${color}">₹${item.amount}</td>
-            <td>${item.type}</td>
-          </tr>
-        `;
-      });
-    }
-
-    function renderAll() {
-      renderStock();
-      renderAttendance();
-      renderLedger();
-    }
-
-    function exportDataBackup() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `Surya_Pumps_Backup_${new Date().toISOString().substring(0,10)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-  </script>
-</body>
-</html>
+</script>
